@@ -1,0 +1,58 @@
+{
+  "name": "orbe-desktop",
+  "productName": "ORBE",
+  "version": "1.0.0",
+  "description": "ORBE - Gestão integrada (versão instalável para Windows)",
+  "main": "main.js",
+  "author": "ORBE",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "copiar": "node scripts/copiar-sistema.js",
+    "build": "npm run copiar && electron-builder --win --x64",
+    "build:dir": "npm run copiar && electron-builder --win --x64 --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "br.com.orbe.pdv",
+    "productName": "ORBE",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "whatsapp.js",
+      "hardware/**",
+      "www/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ORBE"
+    }
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "6.7.18",
+    "qrcode": "^1.5.4",
+    "pino": "^9.5.0"
+  }
+}

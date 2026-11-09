@@ -1,0 +1,62 @@
+ORBE INSTALÁVEL (WINDOWS) - COMO GERAR O INSTALADOR
+====================================================
+
+O QUE É
+O ORBE instalável é o mesmo sistema, dentro de uma janela própria do Windows.
+Ele continua funcionando sem internet e sincroniza com a nuvem quando tem rede.
+O que ele tem a mais que a versão no navegador:
+  - imprime DIRETO na impressora, sem abrir a janela de impressão
+  - abre a gaveta de dinheiro (impressora de rede) ao vender em dinheiro
+  - teste de leitura de balança serial (a leitura na venda entra na próxima etapa)
+  - abre sozinho quando o Windows liga (opcional)
+  - links como o do WhatsApp abrem no navegador do Windows
+  - WHATSAPP DA LOJA: leia o QR Code (igual WhatsApp Web) em Delivery > WhatsApp e os avisos
+    dos pedidos saem sozinhos. Só funciona com o ORBE aberto e o computador ligado.
+    Use um número da loja (não o pessoal). Baileys é conexão não oficial: o WhatsApp pode
+    limitar o número; por isso o ORBE manda só avisos de pedido, devagar.
+  - tecla F11 = tela cheia, F5 = recarregar
+
+O QUE ESTÁ PRONTO / O QUE FALTA
+  Pronto no código: janela, impressão direta, gaveta por rede, tela de Equipamentos.
+  Ainda não testado em um Windows de verdade: faça o primeiro teste numa máquina sua.
+  Fica para a próxima etapa: gaveta por USB, leitura de peso dentro da venda,
+  atualização automática, assinatura digital do instalador (tira o aviso azul do Windows).
+
+----------------------------------------------------
+CAMINHO 1 (MAIS FÁCIL): GERAR PELO GITHUB, SEM INSTALAR NADA
+----------------------------------------------------
+1. Extraia o ORBE_DESKTOP.zip ao lado da pasta ORBE_SITE. Vão ficar 3 itens lado a lado:
+   ORBE_SITE, ORBE_DESKTOP e a pasta oculta .github.
+   Envie os 3 para a RAIZ de um repositório PRIVADO no GitHub.
+2. No GitHub: aba "Actions" > "Gerar instalador do ORBE (Windows)" > "Run workflow".
+3. Espere uns 5 minutos. Ao terminar, baixe "ORBE-instalador" (arquivo .exe).
+4. Dê dois cliques no .exe em cada computador do caixa e siga o instalador.
+
+----------------------------------------------------
+CAMINHO 2: GERAR NO SEU COMPUTADOR WINDOWS
+----------------------------------------------------
+1. Instale o Node.js (nodejs.org, versão LTS).
+2. Deixe as pastas ORBE_SITE e ORBE_DESKTOP lado a lado.
+3. Abra o Prompt de Comando dentro de ORBE_DESKTOP e rode, um de cada vez:
+      npm install
+      npm run build
+4. O instalador aparece em ORBE_DESKTOP\dist\ (arquivo ORBE Setup 1.0.0.exe).
+
+Para testar sem instalar:  npm start
+
+----------------------------------------------------
+COMO ATUALIZAR O SISTEMA DENTRO DO INSTALADOR
+----------------------------------------------------
+O sistema fica dentro do instalador (pasta www). Quando o sistema (ORBE_SITE\app\index.html)
+for atualizado, rode "npm run build" de novo e instale o novo .exe por cima.
+(Na próxima etapa podemos fazer a atualização automática.)
+
+----------------------------------------------------
+DEPOIS DE INSTALAR
+----------------------------------------------------
+No PDV Caixa > Configurações > Equipamentos:
+  1. escolha a impressora do cupom e clique em "Imprimir teste"
+  2. se tiver gaveta ligada na impressora de REDE, marque a opção e informe o IP
+  3. clique em "Testar gaveta"
+
+Os dados do sistema ficam salvos neste computador (e na nuvem, quando a conta online está ligada).

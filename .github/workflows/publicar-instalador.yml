@@ -1,0 +1,30 @@
+name: Publicar instalador do ORBE (Windows)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ORBE_DESKTOP/**", ".github/workflows/publicar-instalador.yml"]
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Gerar o instalador
+        shell: bash
+        run: |
+          cd ORBE_DESKTOP
+          npm install
+          npx electron-builder --win --x64 --publish never
+          cp dist/*.exe ../ORBE-Instalador.exe
+      - name: Publicar no endereço fixo (Releases)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(node -p "require('./ORBE_DESKTOP/package.json').version")
+          TAG="v$V-${{ github.run_number }}"
+          gh release create "$TAG" ORBE-Instalador.exe --repo "${{ github.repository }}" --title "ORBE para Windows $V (build ${{ github.run_number }})" --notes "Instalador do ORBE para Windows. O sistema se atualiza sozinho ao abrir." --latest
