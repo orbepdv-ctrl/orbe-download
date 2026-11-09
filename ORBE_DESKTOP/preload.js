@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('orbeDesktop', {
   printRaw: o => ipcRenderer.invoke('printRaw', o),     // { printer | host, port, b64 } -> ESC/POS direto
   aoAtualizar: fn => ipcRenderer.on('upd:pronta', (_e, x) => fn(x)),   // versão nova baixada: { ver }
   aplicarAtualizacao: () => ipcRenderer.invoke('upd:aplicar'),
+  abrirWhatsApp: () => ipcRenderer.invoke('waweb:abrir'),
+  aoWaNaoLidas: fn => ipcRenderer.on('waweb:naolidas', (e, n) => fn(n)),
   verificarAtualizacao: () => ipcRenderer.invoke('upd:verificar'),
   openDrawer: o => ipcRenderer.invoke('drawer', o),    // { host, port, printer }
   scaleRead: o => ipcRenderer.invoke('scale', o),      // { port, baud }

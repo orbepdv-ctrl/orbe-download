@@ -137,8 +137,31 @@ function criaJanela() {
   });
   // links externos (WhatsApp, etc.) abrem no navegador do Windows
   win.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
-  win.on('closed', () => { win = null; });
+  win.on('closed', () => { win = null; if (waWin && !waWin.isDestroyed()) { saindo = true; waWin.destroy(); } });
 }
+
+// ---- WhatsApp completo (o próprio WhatsApp Web) numa janela do ORBE; a sessão fica salva no computador ----
+let waWin = null, saindo = false;
+const UA_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/' + (process.versions.chrome || '130.0.0.0') + ' Safari/537.36';
+function abreWaWeb() {
+  if (waWin && !waWin.isDestroyed()) { if (waWin.isMinimized()) waWin.restore(); waWin.show(); waWin.focus(); return true; }
+  waWin = new BrowserWindow({
+    width: 1280, height: 820, autoHideMenuBar: true, backgroundColor: '#111b21', title: 'WhatsApp · ORBE',
+    webPreferences: { partition: 'persist:whatsapp', contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true }
+  });
+  const ses = waWin.webContents.session;
+  ses.setUserAgent(UA_CHROME);
+  ses.setPermissionRequestHandler((wc, perm, cb) => cb(['notifications', 'media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'mediaKeySystem'].includes(perm)));
+  waWin.loadURL('https://web.whatsapp.com/', { userAgent: UA_CHROME });
+  waWin.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
+  waWin.webContents.on('page-title-updated', (e, t) => { const m = /\((\d+)\)/.exec(t || ''); if (win && !win.isDestroyed()) win.webContents.send('waweb:naolidas', m ? +m[1] : 0); });
+  // fechar a janela só esconde: o WhatsApp continua conectado e abre na hora da próxima vez
+  waWin.on('close', e => { if (!saindo) { e.preventDefault(); waWin.hide(); } });
+  waWin.on('closed', () => { waWin = null; });
+  return true;
+}
+ipcMain.handle('waweb:abrir', () => abreWaWeb());
+app.on('before-quit', () => { saindo = true; });
 
 const trava = app.requestSingleInstanceLock();
 if (!trava) app.quit();
