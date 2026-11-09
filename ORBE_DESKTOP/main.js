@@ -5,7 +5,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const { listPrinters, printCurrent } = require('./hardware/impressora');
-const { printRaw } = require('./hardware/raw');
+const { printRaw, preaquece } = require('./hardware/raw');
 const { openDrawer } = require('./hardware/gaveta');
 const { readScale } = require('./hardware/balanca');
 let wa = null;
@@ -151,6 +151,7 @@ else {
     const baixando = Promise.all([atualizaSistema(), atualizaMotor()]);
     await Promise.race([baixando, new Promise(r => setTimeout(r, 10000))]); // sem internet ou lenta: abre com a versão que já tem
     criaJanela();
+    setTimeout(preaquece, 3000); // deixa o motor de impressão pronto (cupom sai na hora)
     // se a versão nova terminar de baixar depois que a janela abriu, avisa o sistema (botão "Atualizar agora")
     baixando.then(() => avisaSeNova()).catch(() => {});
     setInterval(async () => { try { await atualizaSistema(); avisaSeNova(); } catch (e) {} }, 15 * 60 * 1000); // confere de 15 em 15 minutos
