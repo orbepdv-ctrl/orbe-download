@@ -5,6 +5,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const { listPrinters, printCurrent } = require('./hardware/impressora');
+const { printRaw } = require('./hardware/raw');
 const { openDrawer } = require('./hardware/gaveta');
 const { readScale } = require('./hardware/balanca');
 let wa = null;
@@ -163,6 +164,7 @@ ipcMain.handle('telacheia', (_e, on) => { gravaCfg({ telaCheia: !!on }); if (win
 ipcMain.handle('autostart', (_e, on) => { app.setLoginItemSettings({ openAtLogin: !!on }); return true; });
 ipcMain.handle('printers', async () => listPrinters(win));
 ipcMain.handle('print', async (_e, o) => printCurrent(win, o || {}));
+ipcMain.handle('printRaw', async (_e, o) => printRaw(win, o || {}));
 ipcMain.handle('drawer', async (_e, o) => openDrawer(o || {}, win));
 ipcMain.handle('scale', async (_e, o) => readScale(o || {}));
 

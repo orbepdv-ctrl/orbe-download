@@ -9,7 +9,8 @@ contextBridge.exposeInMainWorld('orbeDesktop', {
   setTelaCheia: on => ipcRenderer.invoke('telacheia', on),
   setAutostart: on => ipcRenderer.invoke('autostart', on),
   printers: () => ipcRenderer.invoke('printers'),
-  print: o => ipcRenderer.invoke('print', o),          // { printer, a4, copies }
+  print: o => ipcRenderer.invoke('print', o),
+  printRaw: o => ipcRenderer.invoke('printRaw', o),     // { printer | host, port, b64 } -> ESC/POS direto          // { printer, a4, copies }
   openDrawer: o => ipcRenderer.invoke('drawer', o),    // { host, port, printer }
   scaleRead: o => ipcRenderer.invoke('scale', o),      // { port, baud }
   wa: {

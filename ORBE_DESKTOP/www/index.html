@@ -322,7 +322,7 @@ function abre(n){if(!can(permScreen(n))){CUR=n;shell();semAcesso();return}CUR=n;
 function inicio(){const t=["Lojas","Formas de Pagamento","Usuários","Perfis de Acesso"].find(x=>can(permScreen(x)));if(t)abre(t);else{shell();semAcesso()}}
 // ---- login
 let LK={n:0,t:0};
-const ORBE_BUILD=1794232767;const ORBE_VER="09/11 · Impressão: cupom em pé, largura certa e imprimir sozinho";
+const ORBE_BUILD=1794233820;const ORBE_VER="09/11 · Impressão térmica em texto (USB e rede)";
 let LGSENHA=0;const temPin=()=>(ST.users||[]).some(u=>u.pinh&&u.ativo!==false);
 function loginView(){if(temPin()&&!LGSENHA)return loginPin();const l=$("login");l.style.display="flex";l.innerHTML=`<div class="lgb"><h2>ORBE</h2><p>Gestão integrada · entre com seu e-mail e senha</p><label>E-mail ou usuário<input class="in" id="lu" autocomplete="username" style="width:100%"></label><label>Senha<input class="in" id="lp" type="password" autocomplete="current-password" style="width:100%"></label><div class="err" id="le" style="min-height:18px;margin:8px 0"></div><button class="btn p" id="lbt" style="width:100%">Entrar</button>${temPin()?'<button class="btn" id="lgcod" style="width:100%;margin-top:10px">Entrar com código</button>':""}<p style="margin:12px 0 0">Esqueceu a senha? Peça ao administrador para redefinir.</p><p style="margin:10px 0 0;font-size:11px;opacity:.6">Versão ${ORBE_VER}</p>${MODO_TESTE?'<p style="margin:8px 0 0;color:#0e7c86"><b>Modo de teste:</b> admin / admin · caixa / caixa1</p>':""}</div>`;
  if($("lgcod"))$("lgcod").onclick=()=>{LGSENHA=0;loginView()};$("lbt").onclick=doLogin;$("lu").onkeydown=$("lp").onkeydown=e=>{if(e.key=="Enter")doLogin()};$("lu").focus()}
@@ -954,7 +954,7 @@ function pxGrava(fis){pxSnap();const c=meuCaixa(),L=pxLoja(),t=pxTot();if(!c||!P
  VD().push(v);try{const D=window.orbeDesktop,E=ST.equip||{};if(D&&D.openDrawer&&E.gaveta&&(v.pags||[]).some(x=>x.tipo=="Dinheiro"))D.openDrawer({host:E.gavetaIp||"",port:+E.gavetaPorta||9100}).catch(()=>{})}catch(e){}if(v.camp)CUPS().push({camp:v.camp.id,cli:v.cli,desc:v.camp.desc,total:v.total,ts:v.ts,venda:v.id});PX.cart.forEach(l=>{const p=PRODS().find(x=>x.id==l.pid);if(p&&p.ctrl!="nao")pEA(p,v.loja,-l.qtd)});try{fcBaixaVenda(v)}catch(e){}try{mzPos(v)}catch(e){}
  if(vl>0)cli.credito=r2((+cli.credito||0)-vl);pxZera();save();
  $("ov").innerHTML=`<div class="ov"><div class="dlg" role="dialog" aria-label="Venda concluída"><h2>Venda ${v.num} concluída</h2><p style="font-size:22px;margin:6px 0"><b>${brl(v.total)}</b></p>${v.troco?`<p style="font-size:18px">TROCO: <b>${brl(v.troco)}</b></p>`:""}${cli?`<p class="hint">Cliente: ${esc(cli.nome)}</p>`:""}<p class="hint">${v.fiscal=="nenhum"?"Sem emissão fiscal.":"Emissão fiscal pendente ("+(v.fiscal=="nfce"?"NFC-e":"NF-e")+")."}</p><div class="foot"><div><button class="btn" id="pxfch">Fechar</button></div><span style="display:flex;gap:8px;flex-wrap:wrap">${v.fiscal=="nfe"?'<button class="btn" id="pxdn">Imprimir DANFE (A4)</button><button class="btn" id="pxpr">Comprovante térmico</button>':'<button class="btn" id="pxpr">Imprimir cupom</button>'}<button class="btn p" id="pxnova">Nova venda</button></span></div></div></div>`;
- $("pxpr").onclick=()=>pxImprime(pxCupom(v));if($("pxdn"))$("pxdn").onclick=()=>pxImprime(pxDanfe(v));try{if(window.orbeDesktop&&ST.equip&&ST.equip.cupomAuto)setTimeout(()=>{try{pxImprime(pxCupom(v))}catch(e){console.error(e)}},150)}catch(e){}$("pxnova").onclick=()=>{fecha();pxDesenha()};$("pxfch").onclick=()=>{fecha();pxDesenha()};try{fisConcluida(v)}catch(e){console.error(e)}}
+ $("pxpr").onclick=()=>pxImprime(pxCupom(v));if($("pxdn"))$("pxdn").onclick=()=>pxImprime(pxDanfe(v));try{if(window.orbeDesktop&&ST.equip&&ST.equip.cupomAuto)setTimeout(()=>{try{toast("Imprimindo o cupom…");pxImprime(pxCupom(v))}catch(e){console.error(e)}},150)}catch(e){}$("pxnova").onclick=()=>{fecha();pxDesenha()};$("pxfch").onclick=()=>{fecha();pxDesenha()};try{fisConcluida(v)}catch(e){console.error(e)}}
 
 // ---------- impressão: cupom térmico (58/80 mm), DANFE A4, orçamento
 const termW=g=>/58/.test((g&&g.imp)||"")?"Térmica 58 mm":"Térmica 80 mm";
@@ -976,17 +976,37 @@ function pxDanfe(v){const A=v.fiscal=="nfe"&&v.nota&&v.nota.status=="autorizado"
  <h4>Transportador / Volumes transportados</h4><table><tr>${box("Frete por conta","9 - SEM OCORRÊNCIA DE TRANSPORTE")}${box("Nome do transportador","")}${box("Placa / UF","")}</tr></table>
  <h4>Dados dos produtos / serviços</h4><table><thead><tr><th>Código</th><th>Descrição do produto / serviço</th><th>NCM/SH</th><th>O/CST ou CSOSN</th><th>CFOP</th><th>Un</th><th>Qtde</th><th>V. unitário</th><th>V. total</th></tr></thead><tbody>${rows}</tbody></table>
  <h4>Dados adicionais</h4><table><tr><td style="height:60px"><span class="t">Informações complementares</span>Venda nº ${v.num} · Operador: ${esc(u?u.nome:"")}<br>Pagamento: ${esc(v.pags.map(p=>p.nome+(p.parc>1?" "+p.parc+"x":"")+(p.prazo?" "+p.prazo+" dias":"")+" "+brl(p.valor)).join(" + "))}${v.conv?"<br>Venda convertida de não fiscal em "+dataH(v.conv.ts):""}${A?(A.amb=="homolog"?"<br><b>Emitida em ambiente de homologação – sem valor fiscal.</b>":""):"<br><b>Documento de conferência. Não possui valor fiscal até a autorização pela SEFAZ.</b>"}</td></tr></table></div>`}}
+// ---- cupom em texto (ESC/POS): sai sempre em pé, na largura certa e com corte, na USB e na de rede
+function escTxt(t){return String(t||"").replace(/\u00a0/g," ").replace(/[ºª°]/g,m=>m=="ª"?"a":"o").replace(/[–—]/g,"-").replace(/[·•]/g,"-").replace(/[“”]/g,'"').replace(/[‘’]/g,"'").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g,"")}
+function cupomLinhas(html,cols){const box=document.createElement("div");box.innerHTML=html;const L=[],wrap=(t,al,b)=>{t=escTxt(t).replace(/\s+/g," ").trim();if(!t){return}while(t.length>cols){let k=t.lastIndexOf(" ",cols);if(k<cols*0.5)k=cols;L.push({t:pad(t.slice(0,k).trim(),al),b});t=t.slice(k).trim()}L.push({t:pad(t,al),b})},pad=(t,al)=>al=="c"?" ".repeat(Math.max(0,Math.floor((cols-t.length)/2)))+t:t;
+ const partes=el=>{const h=el.innerHTML.split(/<br\s*\/?>/i);return h.map(x=>{const d=document.createElement("div");d.innerHTML=x;return {t:d.textContent,b:/<b[\s>]/i.test(x)&&d.textContent.trim()==(d.querySelector("b")||{}).textContent?.trim()}})};
+ const anda=(el,al)=>{for(const n of [...el.childNodes]){if(n.nodeType==3){if(n.textContent.trim())wrap(n.textContent,al,false);continue}if(n.nodeType!=1)continue;const tg=n.tagName;if(tg=="IMG"||tg=="svg"||tg=="SVG"||tg=="STYLE"||tg=="SCRIPT")continue;if(tg=="HR"){L.push({t:"-".repeat(cols)});continue}if(tg=="BR"){continue}
+  if(n.classList.contains("cl")){const sp=[...n.children];const a=escTxt(sp[0]?sp[0].textContent:"").trim(),b=escTxt(sp[1]?sp[1].textContent:"").trim();if(a.length+b.length+1<=cols)L.push({t:a+" ".repeat(cols-a.length-b.length)+b});else{wrap(a,"l");L.push({t:" ".repeat(Math.max(0,cols-b.length))+b})}continue}
+  const c=n.classList.contains("cc")||/text-align\s*:\s*center/i.test(n.getAttribute("style")||"")?"c":al;
+  if(n.querySelector("div,hr,.cl,table")){anda(n,c);continue}
+  if(tg=="TABLE"){n.querySelectorAll("tr").forEach(r=>wrap([...r.children].map(x=>x.textContent.trim()).join("  "),c));continue}
+  partes(n).forEach(x=>{if(/^-{6,}$/.test(x.t.trim()))L.push({t:"-".repeat(cols)});else wrap(x.t,c,x.b)})}};
+ anda(box,"l");return L}
+function cupomEscPos(html,cols){const L=cupomLinhas(html,cols),B=[0x1b,0x40,0x1b,0x74,0x00];const txt=t=>{for(const ch of t)B.push(ch.charCodeAt(0)&0x7f)};
+ L.forEach(l=>{if(l.b)B.push(0x1b,0x45,1);txt(l.t||"");if(l.b)B.push(0x1b,0x45,0);B.push(0x0a)});B.push(0x0a,0x0a,0x0a,0x0a,0x1d,0x56,0x42,0x00);
+ let bin="";B.forEach(x=>bin+=String.fromCharCode(x));return btoa(bin)}
 function pxImprime(o){let d=$("cupom");if(!d){d=document.createElement("div");d.id="cupom";document.body.appendChild(d)}const w=/58/.test(o.w)?"58mm":/80/.test(o.w)?"80mm":"190mm",rolo=w!="190mm";
- // papel em rolo: a impressora de 80 mm imprime ~72 mm úteis (58 mm -> ~48 mm). A página vai sempre EM PÉ, com a altura do cupom.
- const pw=w=="58mm"?58:80,cw=w=="58mm"?48:72;
+ const pw=w=="58mm"?58:80,cw=w=="58mm"?48:72,cols=w=="58mm"?32:48,D=window.orbeDesktop;
+ // 1) instalável novo: texto direto (ESC/POS) para a térmica
+ if(rolo&&D&&D.printRaw){(async()=>{let Lw=[];try{Lw=(await D.printers())||[]}catch(e){}
+  const ach=n=>{const a=String(n||"").trim().toLowerCase();if(!a)return "";return (Lw.find(x=>x.name.toLowerCase()==a)||Lw.find(x=>x.name.toLowerCase().includes(a)||a.includes(x.name.toLowerCase()))||{}).name||""};
+  const cad=(o.printer&&IMPR().find(x=>String(x.nome).toLowerCase()==String(o.printer).toLowerCase()))||(!o.printer&&(IMPR().find(x=>x.padrao)))||null;
+  const alvo=cad&&cad.tipo=="rede"&&cad.end?{host:String(cad.end).trim(),port:+cad.porta||9100}:{printer:ach(ST.equip&&ST.equip.impr)||ach(o.printer)||ach(cad&&cad.nome)||""};
+  let r;try{r=await D.printRaw(Object.assign({b64:cupomEscPos(o.html,cols)},alvo))}catch(e){r={ok:false,msg:e.message}}
+  if(!r||r.ok===false)toast("Não consegui imprimir: "+((r&&r.msg)||"falhou")+". Confira a impressora em Configurações › Equipamentos e Impressão.")})();return}
+ // 2) página (A4, navegador, ou instalável antigo)
  d.innerHTML=o.html;d.style.boxSizing="border-box";
  if(rolo){d.style.width=cw+"mm";d.style.padding="0 1mm"}else{d.style.width="210mm";d.style.padding="10mm"}
  let hmm=297;if(rolo){const ant=d.style.cssText;d.style.position="absolute";d.style.left="-9999px";d.style.top="0";d.style.visibility="hidden";d.style.display="block";hmm=Math.ceil(d.scrollHeight*25.4/96)+10;d.style.cssText=ant;hmm=Math.max(hmm,pw+2)}
- let st=$("pgsz");if(!st){st=document.createElement("style");st.id="pgsz";document.head.appendChild(st)}st.textContent=rolo?`@page{size:${pw}mm ${hmm}mm;margin:0}`:`@page{size:A4 portrait;margin:0}`;
+ let st=$("pgsz");if(!st){st=document.createElement("style");st.id="pgsz";document.head.appendChild(st)}st.textContent=(rolo?`@page{size:${pw}mm ${hmm}mm;margin:0}`:`@page{size:A4 portrait;margin:0}`)+`@media print{html,body,body.pc{background:#fff!important}body.pc #cupom{background:#fff!important;color:#000!important}}`;
  document.body.classList.add("pc");const fim=()=>setTimeout(()=>document.body.classList.remove("pc"),1500);
- const D=window.orbeDesktop;if(!(D&&D.print)){try{window.print()}catch(e){}fim();return}
+ if(!(D&&D.print)){try{window.print()}catch(e){}fim();return}
  (async()=>{let L=[];try{L=(await D.printers())||[]}catch(e){}
-  // usa a impressora escolhida SÓ se ela existir no Windows; senão vai na padrão do Windows (sem abrir janela)
   const quer=[o.printer,ST.equip&&ST.equip.impr,(IMPR().find(x=>x.padrao)||{}).nome].filter(Boolean),ach=n=>{const a=String(n).trim().toLowerCase();return (L.find(x=>x.name.toLowerCase()==a)||L.find(x=>x.name.toLowerCase().includes(a)||a.includes(x.name.toLowerCase()))||{}).name};
   let pr="";for(const q of quer){const n=ach(q);if(n){pr=n;break}}
   const opc={printer:pr,a4:!rolo,copies:1,landscape:false,pageSize:rolo?{width:pw*1000,height:hmm*1000}:"A4"};
