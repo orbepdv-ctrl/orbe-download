@@ -1,7 +1,7 @@
 {
   "name": "orbe-desktop",
   "productName": "ORBE",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "ORBE - Gestão integrada (versão instalável para Windows)",
   "main": "main.js",
   "author": "ORBE",

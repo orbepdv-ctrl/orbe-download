@@ -115,7 +115,15 @@ function sobeServidor() {
   });
 }
 
+// ---- versão carregada na janela x versão baixada no disco ----
+let buildNaJanela = 0;
+const buildNoDisco = () => { try { return buildDe(fs.readFileSync(indexAtual(), 'utf8')); } catch (e) { return 0; } };
+const verNoDisco = () => { try { const x = /ORBE_VER\s*=\s*"([^"]*)"/.exec(fs.readFileSync(indexAtual(), 'utf8')); return x ? x[1] : ''; } catch (e) { return ''; } };
+function avisaSeNova() { if (win && !win.isDestroyed() && buildNoDisco() > buildNaJanela) win.webContents.send('upd:pronta', { ver: verNoDisco() }); }
+ipcMain.handle('upd:aplicar', () => { if (win && !win.isDestroyed()) { buildNaJanela = buildNoDisco(); win.webContents.reloadIgnoringCache(); } return true; });
+ipcMain.handle('upd:verificar', async () => { const r = await atualizaSistema(); const st = lerSt() || {}; return { nova: buildNoDisco() > buildNaJanela, ver: verNoDisco(), motivo: st.motivo || '', ok: st.ok !== false, baixou: r }; });
 function criaJanela() {
+  buildNaJanela = buildNoDisco();
   win = new BrowserWindow({
     width: 1366, height: 800, show: false, autoHideMenuBar: true, backgroundColor: '#14181d', title: 'ORBE',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false }
@@ -125,7 +133,7 @@ function criaJanela() {
   win.loadURL('http://127.0.0.1:' + PORTA + '/index.html');
   win.webContents.on('before-input-event', (e, i) => {
     if (i.type === 'keyDown' && i.key === 'F11') { win.setFullScreen(!win.isFullScreen()); e.preventDefault(); }
-    if (i.type === 'keyDown' && i.key === 'F5') { win.webContents.reload(); e.preventDefault(); }
+    if (i.type === 'keyDown' && i.key === 'F5') { buildNaJanela = buildNoDisco(); win.webContents.reloadIgnoringCache(); e.preventDefault(); }
   });
   // links externos (WhatsApp, etc.) abrem no navegador do Windows
   win.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
@@ -140,8 +148,12 @@ else {
     try { await sobeServidor(); }
     catch (e) { dialog.showErrorBox('ORBE', 'Não consegui iniciar o sistema (porta ' + PORTA + ' ocupada). Feche outro ORBE aberto e tente de novo.'); return app.quit(); }
     limpaCopiaVelha();
-    await Promise.race([Promise.all([atualizaSistema(), atualizaMotor()]), new Promise(r => setTimeout(r, 10000))]); // sem internet: segue com a versão que já tem
+    const baixando = Promise.all([atualizaSistema(), atualizaMotor()]);
+    await Promise.race([baixando, new Promise(r => setTimeout(r, 10000))]); // sem internet ou lenta: abre com a versão que já tem
     criaJanela();
+    // se a versão nova terminar de baixar depois que a janela abriu, avisa o sistema (botão "Atualizar agora")
+    baixando.then(() => avisaSeNova()).catch(() => {});
+    setInterval(async () => { try { await atualizaSistema(); avisaSeNova(); } catch (e) {} }, 15 * 60 * 1000); // confere de 15 em 15 minutos
     const opcoes = { pasta: path.join(app.getPath('userData'), 'whatsapp'), avisa: s => { if (win && !win.isDestroyed()) win.webContents.send('wa:status', s); }, aoMsg: x => { if (win && !win.isDestroyed()) win.webContents.send('wa:msg', x); } };
     const m = carregaMotor();
     wa = m.fn(m.extra ? Object.assign({}, opcoes, { avisa: s => {

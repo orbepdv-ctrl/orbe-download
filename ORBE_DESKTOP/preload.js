@@ -10,7 +10,10 @@ contextBridge.exposeInMainWorld('orbeDesktop', {
   setAutostart: on => ipcRenderer.invoke('autostart', on),
   printers: () => ipcRenderer.invoke('printers'),
   print: o => ipcRenderer.invoke('print', o),
-  printRaw: o => ipcRenderer.invoke('printRaw', o),     // { printer | host, port, b64 } -> ESC/POS direto          // { printer, a4, copies }
+  printRaw: o => ipcRenderer.invoke('printRaw', o),     // { printer | host, port, b64 } -> ESC/POS direto
+  aoAtualizar: fn => ipcRenderer.on('upd:pronta', (_e, x) => fn(x)),   // versão nova baixada: { ver }
+  aplicarAtualizacao: () => ipcRenderer.invoke('upd:aplicar'),
+  verificarAtualizacao: () => ipcRenderer.invoke('upd:verificar'),
   openDrawer: o => ipcRenderer.invoke('drawer', o),    // { host, port, printer }
   scaleRead: o => ipcRenderer.invoke('scale', o),      // { port, baud }
   wa: {
