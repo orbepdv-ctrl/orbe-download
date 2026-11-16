@@ -131,13 +131,14 @@ function criaJanela() {
   Menu.setApplicationMenu(null);
   win.once('ready-to-show', () => { win.maximize(); win.show(); if (lerCfg().telaCheia) win.setFullScreen(true); });
   win.loadURL('http://127.0.0.1:' + PORTA + '/index.html');
+  win.webContents.on('did-start-loading', () => { try { waViewMostra(false); } catch (e) {} });
   win.webContents.on('before-input-event', (e, i) => {
     if (i.type === 'keyDown' && i.key === 'F11') { win.setFullScreen(!win.isFullScreen()); e.preventDefault(); }
     if (i.type === 'keyDown' && i.key === 'F5') { buildNaJanela = buildNoDisco(); win.webContents.reloadIgnoringCache(); e.preventDefault(); }
   });
   // links externos (WhatsApp, etc.) abrem no navegador do Windows
   win.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
-  win.on('closed', () => { win = null; if (waWin && !waWin.isDestroyed()) { saindo = true; waWin.destroy(); } });
+  win.on('closed', () => { win = null; try { if (waView) { waView.webContents.close(); waView = null; } } catch (e) {} if (waWin && !waWin.isDestroyed()) { saindo = true; waWin.destroy(); } });
 }
 
 // ---- WhatsApp completo (o próprio WhatsApp Web) numa janela do ORBE; a sessão fica salva no computador ----
@@ -161,6 +162,46 @@ function abreWaWeb() {
   return true;
 }
 ipcMain.handle('waweb:abrir', () => abreWaWeb());
+
+// ---- WhatsApp ENCAIXADO na aba Conversas (painel ancorado na janela principal) ----
+// Se qualquer coisa falhar aqui, a pagina continua podendo usar a janela flutuante acima.
+let waView = null;
+function waViewMostra(on) {
+  if (!waView) return;
+  try { if (typeof waView.setVisible === 'function') { waView.setVisible(!!on); return; } } catch (e) {}
+  try { if (!on) waView.setBounds({ x: 0, y: 0, width: 0, height: 0 }); } catch (e) {}
+}
+function waViewCria() {
+  if (waView) return waView;
+  const { WebContentsView } = require('electron');
+  if (!WebContentsView || !win || win.isDestroyed() || !win.contentView) return null;
+  const v = new WebContentsView({
+    webPreferences: { partition: 'persist:whatsapp', contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true }
+  });
+  const ses = v.webContents.session;
+  ses.setUserAgent(UA_CHROME);
+  ses.setPermissionRequestHandler((wc, perm, cb) => cb(['notifications', 'media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'mediaKeySystem'].includes(perm)));
+  v.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
+  v.webContents.on('page-title-updated', (e, t) => { const m = /\((\d+)\)/.exec(t || ''); if (win && !win.isDestroyed()) win.webContents.send('waweb:naolidas', m ? +m[1] : 0); });
+  win.contentView.addChildView(v);
+  v.webContents.loadURL('https://web.whatsapp.com/', { userAgent: UA_CHROME });
+  waView = v;
+  waViewMostra(false);
+  return v;
+}
+ipcMain.handle('waweb:encaixar', (e, r) => {
+  try {
+    if (!win || win.isDestroyed() || !r) return false;
+    const v = waViewCria(); if (!v) return false;
+    const b = { x: Math.max(0, Math.round(r.x || 0)), y: Math.max(0, Math.round(r.y || 0)),
+                width: Math.round(r.w || 0), height: Math.round(r.h || 0) };
+    if (b.width < 120 || b.height < 120) { waViewMostra(false); return false; }
+    v.setBounds(b); waViewMostra(true);
+    return true;
+  } catch (err) { try { waViewMostra(false); } catch (e2) {} return false; }
+});
+ipcMain.handle('waweb:esconder', () => { try { waViewMostra(false); } catch (e) {} return true; });
+ipcMain.handle('waweb:encaixavel', () => { try { return !!require('electron').WebContentsView; } catch (e) { return false; } });
 app.on('before-quit', () => { saindo = true; });
 
 const trava = app.requestSingleInstanceLock();

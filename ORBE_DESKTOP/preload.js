@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('orbeDesktop', {
   aoAtualizar: fn => ipcRenderer.on('upd:pronta', (_e, x) => fn(x)),   // versão nova baixada: { ver }
   aplicarAtualizacao: () => ipcRenderer.invoke('upd:aplicar'),
   abrirWhatsApp: () => ipcRenderer.invoke('waweb:abrir'),
+  encaixarWhatsApp: r => ipcRenderer.invoke('waweb:encaixar', r),
+  esconderWhatsApp: () => ipcRenderer.invoke('waweb:esconder'),
+  whatsappEncaixavel: () => ipcRenderer.invoke('waweb:encaixavel'),
   aoWaNaoLidas: fn => ipcRenderer.on('waweb:naolidas', (e, n) => fn(n)),
   verificarAtualizacao: () => ipcRenderer.invoke('upd:verificar'),
   openDrawer: o => ipcRenderer.invoke('drawer', o),    // { host, port, printer }
