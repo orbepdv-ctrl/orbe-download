@@ -1,4 +1,4 @@
-// ORBE_MOTOR=2
+// ORBE_MOTOR=3
 // ORBE · WhatsApp da loja (roda dentro do app instalado, sem servidor).
 // Liga o número da loja lendo um QR Code, igual ao WhatsApp Web.
 // Só envia o que o sistema pedir (avisos de pedido). Fila lenta para evitar bloqueio.
@@ -12,11 +12,18 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
   let querLigado = false, tentativas = 0, timerRecon = null;
   const fila = []; let enviando = false; let enviadosMin = [];
 
-  // ---- histórico de conversas (arquivo no computador, fora da pasta da sessão) ----
+  // ---- conversas: SÓ NA MEMÓRIA ----
+  // Até o motor 2 o histórico era gravado em disco, de propósito, fora da pasta
+  // da sessão — para sobreviver a uma queda de internet. O efeito colateral é
+  // que desconectar o WhatsApp (pelo PC ou pelo celular) NÃO apagava nada: nome,
+  // telefone e mensagens de clientes reais ficavam em texto aberto na máquina da
+  // loja. Quem segura conversa é o WhatsApp, não o ORBE: ao reconectar, ele
+  // mesmo devolve o histórico. Então nada mais é escrito, e o arquivo que ficou
+  // para trás é apagado na primeira vez que este motor roda.
   const arqConv = pasta + '-conversas.json';
-  let chats = {}, lids = {}; let timerSalva = null;   // lids: código oculto do WhatsApp (LID) -> telefone
-  try { const j = JSON.parse(fs.readFileSync(arqConv, 'utf8')); chats = j.chats || {}; lids = j.lids || {}; } catch (e) {}
-  const salva = () => { clearTimeout(timerSalva); timerSalva = setTimeout(() => { try { fs.writeFileSync(arqConv, JSON.stringify({ chats, lids })); } catch (e) {} }, 800); };
+  let chats = {}, lids = {};   // lids: código oculto do WhatsApp (LID) -> telefone
+  try { if (fs.existsSync(arqConv)) { fs.unlinkSync(arqConv); console.log('[wa] histórico antigo apagado do disco'); } } catch (e) {}
+  const salva = () => {};      // nada vai para o disco
   const soNum = v => String(v || '').split('@')[0].split(':')[0].replace(/\D/g, '');
   const ehLid = j => String(j || '').endsWith('@lid');
   const ehPn = j => String(j || '').endsWith('@s.whatsapp.net');
