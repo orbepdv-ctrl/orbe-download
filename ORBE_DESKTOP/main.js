@@ -253,4 +253,5 @@ ipcMain.handle('wa:enviar', (_e, o) => (wa ? wa.envia(o || {}) : { ok: false, mo
 ipcMain.handle('wa:conversas', () => (wa ? wa.conversas() : []));
 ipcMain.handle('wa:mensagens', (_e, jid) => (wa ? wa.mensagens(jid) : []));
 ipcMain.handle('wa:responder', (_e, o) => (wa ? wa.responder(o || {}) : { ok: false, motivo: 'desconectado' }));
+ipcMain.handle('wa:responderImagem', (_e, o) => (wa ? wa.responderImagem(o || {}) : { ok: false, motivo: 'desconectado' }));
 ipcMain.handle('wa:lido', (_e, jid) => (wa ? wa.lido(jid) : true));

@@ -146,6 +146,22 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
     catch (e) { return { ok: false, motivo: 'erro', msg: String(e && e.message || e) }; }
   }
 
+  /* Mandar imagem: o robo usa isto para enviar a folha do cardapio em JPG.
+     Cliente com internet ruim ve a folha na propria conversa, sem baixar
+     nada e sem abrir link. Chega como base64 porque atravessa o IPC. */
+  async function responderImagem({ jid, base64, mime, legenda }) {
+    if (st.estado !== 'conectado' || !sock) return { ok: false, motivo: 'desconectado', msg: 'WhatsApp não está conectado.' };
+    if (!jid || !base64) return { ok: false, motivo: 'dados', msg: 'Imagem vazia.' };
+    let buf;
+    try { buf = Buffer.from(String(base64).replace(/^data:[^,]*,/, ''), 'base64'); }
+    catch (e) { return { ok: false, motivo: 'dados', msg: 'Imagem inválida.' }; }
+    if (!buf.length || buf.length > 12 * 1024 * 1024) return { ok: false, motivo: 'dados', msg: 'Imagem vazia ou grande demais.' };
+    const m = { image: buf, mimetype: String(mime || 'image/jpeg') };
+    if (String(legenda || '').trim()) m.caption = String(legenda);
+    try { const r = await sock.sendMessage(jid, m); guarda(r); if (r) registra(r); return { ok: true }; }
+    catch (e) { return { ok: false, motivo: 'erro', msg: String(e && e.message || e) }; }
+  }
+
   const muda = o => { st = Object.assign({}, st, o); try { avisa && avisa(st); } catch (e) {} };
   const sessaoExiste = () => fs.existsSync(path.join(pasta, 'creds.json'));
   const espera = ms => new Promise(r => setTimeout(r, ms));
@@ -249,7 +265,7 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
     desconectar: () => desliga(true),
     pausar: () => desliga(false),
     envia,
-    conversas: lista, mensagens: msgsDe, responder, lido, registra, aprende, historico,
+    conversas: lista, mensagens: msgsDe, responder, responderImagem, lido, registra, aprende, historico,
     aoIniciar: () => { if (sessaoExiste()) conecta(); }   // se já leu o QR antes, volta sozinho
   };
 }

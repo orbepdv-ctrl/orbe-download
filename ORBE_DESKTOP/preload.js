@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('orbeDesktop', {
     conversas: () => ipcRenderer.invoke('wa:conversas'),
     mensagens: jid => ipcRenderer.invoke('wa:mensagens', jid),
     responder: o => ipcRenderer.invoke('wa:responder', o),   // { jid, texto }
+    responderImagem: o => ipcRenderer.invoke('wa:responderImagem', o),   // { jid, base64, mime, legenda }
     lido: jid => ipcRenderer.invoke('wa:lido', jid),
     aoMsg: fn => ipcRenderer.on('wa:msg', (_e, x) => fn(x))
   }
