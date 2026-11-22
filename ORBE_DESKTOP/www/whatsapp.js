@@ -72,7 +72,10 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
     if (x.contactMessage) return { texto: '👤 Contato', tipo: 'midia' };
     return null;
   };
-  function registra(m) {
+  // 'doHist' = veio do historico que o WhatsApp manda ao conectar. Nesse
+  // caso nao se conta nao-lida: quem diz quantas sao e o proprio WhatsApp,
+  // no unreadCount da conversa. Sem isso, reconectar marcaria tudo como novo.
+  function registra(m, doHist) {
     try {
       const k = m.key || {}; let jid = k.remoteJid;
       if (jid && ehLid(jid)) {
@@ -88,17 +91,46 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
       const fone = ehLid(jid) ? '' : soNum(alt || jid);
       const ch = chats[jid] || (chats[jid] = { jid, nome: '', fone, ts: 0, naoLidas: 0, msgs: [] });
       if (ch.msgs.some(x => x.id === k.id)) return;
-      if (!k.fromMe && m.pushName) ch.nome = m.pushName;
+      // O nome da agenda do dono (que vem na lista de conversas do WhatsApp)
+      // vale mais que o pushName, que e o nome que o proprio cliente escolheu
+      // para si. Quem salvou "Dona Maria" quer ver Dona Maria, nao "Mary".
+      if (!k.fromMe && m.pushName && !ch.nomeFixo) ch.nome = m.pushName;
       if (fone && !ch.fone) ch.fone = fone;
       if (ehLid(jid) && sock) resolveLid(jid);
       ch.msgs.push({ id: k.id, de: k.fromMe ? 'eu' : 'cli', texto: c.texto, tipo: c.tipo, ts });
       ch.msgs.sort((a, b) => a.ts - b.ts); if (ch.msgs.length > 200) ch.msgs = ch.msgs.slice(-200);
       ch.ts = Math.max(ch.ts, ts);
-      if (!k.fromMe) ch.naoLidas = (ch.naoLidas || 0) + 1;
+      if (!k.fromMe && !doHist) ch.naoLidas = (ch.naoLidas || 0) + 1;
       salva();
       try { aoMsg && aoMsg({ jid, de: k.fromMe ? 'eu' : 'cli' }); } catch (e) {}
     } catch (e) {}
   }
+  // O WhatsApp manda o historico assim que conecta, no evento
+  // 'messaging-history.set'. Ate aqui o ORBE lia SO os contatos dele e
+  // jogava fora as conversas e as mensagens que vinham junto — por isso a
+  // aba Conversas abria quase vazia, mostrando so o que acontecia depois de
+  // conectar, e nunca o WhatsApp de verdade da loja.
+  function historico(h) {
+    try {
+      let nc = 0, nm = 0;
+      ((h && h.chats) || []).forEach(c0 => {
+        try {
+          let jid = c0.id; if (!jid) return;
+          if (ehLid(jid)) { const p = lids[soNum(jid)]; if (p) jid = p + '@s.whatsapp.net'; }
+          if (jid === 'status@broadcast' || /@(g\.us|broadcast|newsletter)$/.test(jid)) return;
+          const c = chats[jid] || (chats[jid] = { jid, nome: '', fone: ehLid(jid) ? '' : soNum(jid), ts: 0, naoLidas: 0, msgs: [] });
+          if (c0.name) { c.nome = c0.name; c.nomeFixo = 1; }
+          const t = (Number(c0.conversationTimestamp) || 0) * 1000;
+          if (t > c.ts) c.ts = t;
+          if (c0.unreadCount != null) c.naoLidas = Math.max(0, Number(c0.unreadCount) || 0);
+          nc++;
+        } catch (e) {}
+      });
+      ((h && h.messages) || []).forEach(m => { try { registra(m, true); nm++; } catch (e) {} });
+      if (nc || nm) console.log('[wa] historico do WhatsApp: ' + nc + ' conversas, ' + nm + ' mensagens');
+    } catch (e) {}
+  }
+
   const lista = () => Object.values(chats).sort((a, b) => b.ts - a.ts).map(c => { const u = c.msgs[c.msgs.length - 1] || {}; return { jid: c.jid, nome: c.nome || '', fone: c.fone || '', oculto: !c.fone, ts: c.ts, naoLidas: c.naoLidas || 0, ultima: u.texto || '', ultimaDe: u.de || '' }; });
   const msgsDe = jid => (chats[jid] ? chats[jid].msgs : []);
   const lido = jid => { if (chats[jid]) { chats[jid].naoLidas = 0; salva(); } return true; };
@@ -141,7 +173,7 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
       sock.ev.on('creds.update', saveCreds);
       ['contacts.upsert', 'contacts.update', 'chats.phoneNumberShare'].forEach(ev => { try { sock.ev.on(ev, a => aprendeLista(Array.isArray(a) ? a : [a])); } catch (e) {} });
       try { sock.ev.on('lid-mapping.update', a => { const arr = Array.isArray(a) ? a : (a && a.mappings) || Object.entries(a || {}).map(([lid, pn]) => ({ lid, pn })); arr.forEach(x => x && aprende(x.lid || x.id, x.pn || x.phoneNumber)); }); } catch (e) {}
-      try { sock.ev.on('messaging-history.set', h => { aprendeLista(h && h.contacts); }); } catch (e) {}
+      try { sock.ev.on('messaging-history.set', h => { aprendeLista(h && h.contacts); historico(h); }); } catch (e) {}
       sock.ev.on('messages.upsert', ({ messages }) => { (messages || []).forEach(registra); });
       sock.ev.on('connection.update', async u => {
         const { connection, lastDisconnect, qr } = u;
@@ -217,7 +249,7 @@ function criaWhatsapp({ pasta, avisa, aoMsg }) {
     desconectar: () => desliga(true),
     pausar: () => desliga(false),
     envia,
-    conversas: lista, mensagens: msgsDe, responder, lido, registra, aprende,
+    conversas: lista, mensagens: msgsDe, responder, lido, registra, aprende, historico,
     aoIniciar: () => { if (sessaoExiste()) conecta(); }   // se já leu o QR antes, volta sozinho
   };
 }
